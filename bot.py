@@ -6,6 +6,7 @@ import os.path
 import sys
 import traceback
 from random import random
+import re
 
 class Message(object):
     def __init__(self, message=None, finish_time=None, data=None, is_schedulable=None, bot=None):
@@ -153,6 +154,9 @@ def register_event(bot, update, args, job_queue, chat_data):
         c = pdt.Constants("ru_RU")
         p = pdt.Calendar(c)
         finish_time, status = p.parseDT(string)
+        if status > 0 and (re.search('Завтра', string) or re.search('завтра', string)) and datetime.now().hour <= 6:
+            update.message.reply_text('Не надо использовать слово "завтра" ночью, пожалуйста')
+            return
         chat_data['message_collection'].add_message(Message(message=string,
             finish_time=finish_time, is_schedulable=(status > 0),
             bot=bot), silent=False)
