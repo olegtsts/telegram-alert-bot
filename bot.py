@@ -71,7 +71,7 @@ class TimerMessageController(object):
             if message.finish_time <= datetime.now():
                 message_collection.delete_message(message)
             else:
-                due = (message.finish_time - datetime.now()).seconds
+                due = (message.finish_time - datetime.now()).total_seconds()
                 self.jobs[message.id] = self.job_queue.run_once(alarm, due, context=(self, message_collection, message))
         if not silent:
             self.send_message(message, "Добавлено")
@@ -150,14 +150,21 @@ def register_event(bot, update, args, job_queue, chat_data):
     print("Start register_event")
     try:
         init_chat_data(update, chat_data, bot, job_queue)
-        string = " ".join(args)
+        string = ""
+        while len(args):
+            if re.search('http:', args[0] ) or re.search('https:', args[0]):
+                break
+            else:
+                string += args[0] + " "
+                args = args[1:]
+        rest_string = " ".join(args)
         c = pdt.Constants("ru_RU")
         p = pdt.Calendar(c)
         finish_time, status = p.parseDT(string)
         if status > 0 and (re.search('Завтра', string) or re.search('завтра', string)) and datetime.now().hour <= 6:
             update.message.reply_text('Не надо использовать слово "завтра" ночью, пожалуйста')
             return
-        chat_data['message_collection'].add_message(Message(message=string,
+        chat_data['message_collection'].add_message(Message(message=string + " " + rest_string,
             finish_time=finish_time, is_schedulable=(status > 0),
             bot=bot), silent=False)
     except:
